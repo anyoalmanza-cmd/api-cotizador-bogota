@@ -44,7 +44,7 @@ def pipeline_completo(num_modelos=5, epochs=500):
     input_dim = X_train.shape[1]
     modelos = []
 
-    print(f"[PIPELINE] Entrenando ensamble (Bagging) de {num_modelos} Modelos...")
+    print(f"[PIPELINE] Entrenando ensamble (Bagging) de {num_modelos} Modelos")
     for i in range(num_modelos):
         idx = np.random.choice(np.arange(len(X_train)), size=len(X_train), replace=True)
         model, _ = entrenar_una_red(X_train[idx], y_train[idx], data["X_val"], data["y_val"], input_dim, epochs)
