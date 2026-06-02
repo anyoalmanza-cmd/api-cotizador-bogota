@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.config import DEVICE, METADATOS_PATH, PESOS_PATH
+from src.config import DEVICE
 from src.model import RedInmueblesMLP
 from src.evaluate import predecir_ensamble
 from src.api.schemas import RequestInmueble
@@ -18,13 +18,18 @@ meta_prod, columnas_modelo, redes_activas, metricas_modelo = None, None, [], {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global meta_prod, columnas_modelo, redes_activas, metricas_modelo
-    if not os.path.exists(METADATOS_PATH):
-        raise RuntimeError("Los pesos del modelo no existen. Ejecuta primero 'make train'.")
+    
+    # Aseguramos la búsqueda de los pesos directo en la raíz de la instancia en Render
+    RUTA_METADATOS = "data_meta.pth"
+    RUTA_PESOS = "ensemble_latest.pth"
+    
+    if not os.path.exists(RUTA_METADATOS):
+        raise RuntimeError(f"No se encontró el archivo de metadatos en la raíz. Buscado en: {os.path.abspath(RUTA_METADATOS)}")
 
-    meta_prod = torch.load(METADATOS_PATH, map_location=DEVICE)
+    meta_prod = torch.load(RUTA_METADATOS, map_location=DEVICE)
     columnas_modelo = meta_prod["columnas_X"]
     metricas_modelo = meta_prod.get("metricas_test", {})
-    pesos = torch.load(PESOS_PATH, map_location=DEVICE)
+    pesos = torch.load(RUTA_PESOS, map_location=DEVICE)
 
     redes_activas = []
     for i in range(meta_prod["num_modelos"]):
