@@ -12,12 +12,10 @@ RAIZ_PROYECTO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 if RAIZ_PROYECTO not in sys.path:
     sys.path.insert(0, RAIZ_PROYECTO)
 
-from src.config import DEVICE
 from src.model import RedInmueblesMLP
 from src.evaluate import predecir_ensamble
 from src.api.schemas import RequestInmueble
 
-# Variables globales para la carga perezosa
 meta_prod, columnas_modelo, redes_activas, metricas_modelo = None, None, [], {}
 
 @asynccontextmanager
@@ -37,24 +35,18 @@ app.add_middleware(
 def cargar_modelos_si_es_necesario():
     global meta_prod, columnas_modelo, redes_activas, metricas_modelo
     if meta_prod is not None: return 
-
-    RUTA_METADATOS = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
-    RUTA_PESOS = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
-
-    if not os.path.exists(RUTA_METADATOS):
-        raise RuntimeError("No se encontraron los archivos del modelo en la raíz.")
-
-    meta_prod = torch.load(RUTA_METADATOS, map_location=torch.device('cpu'))
+    
+    # Asegúrate de que las rutas apunten a los archivos correctos
+    meta_prod = torch.load(os.path.join(RAIZ_PROYECTO, "data_meta.pth"), map_location=torch.device('cpu'))
     columnas_modelo = meta_prod["columnas_X"]
     metricas_modelo = meta_prod.get("metricas_test", {})
-    pesos = torch.load(RUTA_PESOS, map_location=torch.device('cpu'))
+    pesos = torch.load(os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth"), map_location=torch.device('cpu'))
 
     for i in range(meta_prod["num_modelos"]):
         net = RedInmueblesMLP(len(columnas_modelo))
         net.load_state_dict(pesos[i])
         net.eval()
         redes_activas.append(net)
-    del pesos
 
 @app.post("/predecir")
 def predecir(inmueble: RequestInmueble):
@@ -65,18 +57,16 @@ def predecir(inmueble: RequestInmueble):
     df["Habitaciones"] = inmueble.habitaciones
     df["Baños"] = inmueble.banos
 
-    # Normalización para evitar el error 400
-    # Ajustamos el formato: Tipo_Apartamento, Barrio_CEDRITOS, UPZ_CEDRITOS
-    t_val = inmueble.tipo.title()
-    b_val = inmueble.barrio.upper()
-    u_val = inmueble.upz.upper()
-
-    t_col, b_col, u_col = f"Tipo_{t_val}", f"Barrio_{b_val}", f"UPZ_{u_val}"
+    # Usamos los valores exactamente como llegan, sin .upper() ni .title()
+    t_col = f"Tipo_{inmueble.tipo}"
+    b_col = f"Barrio_{inmueble.barrio}"
+    u_col = f"UPZ_{inmueble.upz}"
     
+    # Validación exacta
     if t_col not in df.columns or b_col not in df.columns or u_col not in df.columns:
         raise HTTPException(
             status_code=400, 
-            detail=f"Categoría no válida. Buscado: {t_col}, {b_col}, {u_col}. Verifica que el modelo contenga estas categorías."
+            detail=f"Categoría no encontrada. Verifica: {t_col}, {b_col}, {u_col}"
         )
 
     df[t_col], df[b_col], df[u_col] = 1.0, 1.0, 1.0
@@ -94,5 +84,4 @@ def predecir(inmueble: RequestInmueble):
             "RMSE_millones": round(float(metricas_modelo.get("RMSE_millones", 0.0)), 2),
             "MAPE_porcentaje": round(float(metricas_modelo.get("MAPE_porcentaje", 0.0)), 2),
         }
-    }
     }
