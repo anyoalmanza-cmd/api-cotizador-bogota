@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware # IMPORTANTE: Añadimos esto
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 # Configuración de rutas
@@ -27,7 +27,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="API Inmobiliaria Bogotá", version="2.5", lifespan=lifespan)
 
-# AÑADE ESTO: Permite conexiones desde tu web (GitHub Pages)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -37,9 +36,7 @@ app.add_middleware(
 
 def cargar_modelos_si_es_necesario():
     global meta_prod, columnas_modelo, redes_activas, metricas_modelo
-    
-    if meta_prod is not None:
-        return 
+    if meta_prod is not None: return 
 
     RUTA_METADATOS = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
     RUTA_PESOS = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
@@ -68,9 +65,19 @@ def predecir(inmueble: RequestInmueble):
     df["Habitaciones"] = inmueble.habitaciones
     df["Baños"] = inmueble.banos
 
-    t_col, b_col, u_col = f"Tipo_{inmueble.tipo}", f"Barrio_{inmueble.barrio}", f"UPZ_{inmueble.upz}"
+    # Normalización para evitar el error 400
+    # Ajustamos el formato: Tipo_Apartamento, Barrio_CEDRITOS, UPZ_CEDRITOS
+    t_val = inmueble.tipo.title()
+    b_val = inmueble.barrio.upper()
+    u_val = inmueble.upz.upper()
+
+    t_col, b_col, u_col = f"Tipo_{t_val}", f"Barrio_{b_val}", f"UPZ_{u_val}"
+    
     if t_col not in df.columns or b_col not in df.columns or u_col not in df.columns:
-        raise HTTPException(status_code=400, detail="Categoría geográfica o estructural no válida.")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Categoría no válida. Buscado: {t_col}, {b_col}, {u_col}. Verifica que el modelo contenga estas categorías."
+        )
 
     df[t_col], df[b_col], df[u_col] = 1.0, 1.0, 1.0
     scaled = (df.values.astype(np.float32) - meta_prod["X_mean"].numpy()) / meta_prod["X_std"].numpy()
@@ -87,4 +94,5 @@ def predecir(inmueble: RequestInmueble):
             "RMSE_millones": round(float(metricas_modelo.get("RMSE_millones", 0.0)), 2),
             "MAPE_porcentaje": round(float(metricas_modelo.get("MAPE_porcentaje", 0.0)), 2),
         }
+    }
     }
