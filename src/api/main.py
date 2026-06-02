@@ -6,50 +6,56 @@ import torch
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 
-# Forzamos a Python a reconocer la raíz absoluta del proyecto antes de cualquier otra importación
+# Configuración de rutas
 RAIZ_PROYECTO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if RAIZ_PROYECTO not in sys.path:
     sys.path.insert(0, RAIZ_PROYECTO)
 
-# Ahora las importaciones modulares funcionarán de manera impecable
 from src.config import DEVICE
 from src.model import RedInmueblesMLP
 from src.evaluate import predecir_ensamble
 from src.api.schemas import RequestInmueble
 
+# Variables globales para la carga perezosa
 meta_prod, columnas_modelo, redes_activas, metricas_modelo = None, None, [], {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global meta_prod, columnas_modelo, redes_activas, metricas_modelo
-    
-    # Rutas relativas directas desde la raíz del despliegue
-    RUTA_METADATOS = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
-    RUTA_PESOS = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
-    
-    if not os.path.exists(RUTA_METADATOS):
-        raise RuntimeError(f"No se encontró el archivo de metadatos binarios. Buscado en: {RUTA_METADATOS}")
-
-    meta_prod = torch.load(RUTA_METADATOS, map_location=DEVICE)
-    columnas_modelo = meta_prod["columnas_X"]
-    metricas_modelo = meta_prod.get("metricas_test", {})
-    pesos = torch.load(RUTA_PESOS, map_location=DEVICE)
-
-    redes_activas = []
-    for i in range(meta_prod["num_modelos"]):
-        net = RedInmueblesMLP(len(columnas_modelo)).to(DEVICE)
-        net.load_state_dict(pesos[i])
-        net.eval()
-        redes_activas.append(net)
+    # Al arrancar, no cargamos nada para que el puerto abra de inmediato
     yield
+    # Limpieza al apagar
     redes_activas.clear()
 
 app = FastAPI(title="API Inmobiliaria Bogotá", version="2.5", lifespan=lifespan)
 
+def cargar_modelos_si_es_necesario():
+    global meta_prod, columnas_modelo, redes_activas, metricas_modelo
+    
+    if meta_prod is not None:
+        return # Ya están cargados
+
+    RUTA_METADATOS = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
+    RUTA_PESOS = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
+
+    if not os.path.exists(RUTA_METADATOS):
+        raise RuntimeError("No se encontraron los archivos del modelo en la raíz.")
+
+    meta_prod = torch.load(RUTA_METADATOS, map_location=torch.device('cpu'))
+    columnas_modelo = meta_prod["columnas_X"]
+    metricas_modelo = meta_prod.get("metricas_test", {})
+    pesos = torch.load(RUTA_PESOS, map_location=torch.device('cpu'))
+
+    for i in range(meta_prod["num_modelos"]):
+        net = RedInmueblesMLP(len(columnas_modelo))
+        net.load_state_dict(pesos[i])
+        net.eval()
+        redes_activas.append(net)
+    del pesos
+
 @app.post("/predecir")
 def predecir(inmueble: RequestInmueble):
-    if columnas_modelo is None:
-        raise HTTPException(status_code=503, detail="El modelo no ha sido cargado correctamente en el servidor.")
+    # Carga perezosa: los modelos se cargan al recibir la primera petición
+    cargar_modelos_si_es_necesario()
         
     df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
     df["Área"] = inmueble.area
