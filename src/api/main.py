@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware # IMPORTANTE: Añadimos esto
 from contextlib import asynccontextmanager
 
 # Configuración de rutas
@@ -21,18 +22,24 @@ meta_prod, columnas_modelo, redes_activas, metricas_modelo = None, None, [], {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Al arrancar, no cargamos nada para que el puerto abra de inmediato
     yield
-    # Limpieza al apagar
     redes_activas.clear()
 
 app = FastAPI(title="API Inmobiliaria Bogotá", version="2.5", lifespan=lifespan)
+
+# AÑADE ESTO: Permite conexiones desde tu web (GitHub Pages)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def cargar_modelos_si_es_necesario():
     global meta_prod, columnas_modelo, redes_activas, metricas_modelo
     
     if meta_prod is not None:
-        return # Ya están cargados
+        return 
 
     RUTA_METADATOS = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
     RUTA_PESOS = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
@@ -54,7 +61,6 @@ def cargar_modelos_si_es_necesario():
 
 @app.post("/predecir")
 def predecir(inmueble: RequestInmueble):
-    # Carga perezosa: los modelos se cargan al recibir la primera petición
     cargar_modelos_si_es_necesario()
         
     df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
