@@ -6,8 +6,12 @@ import torch
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Forzamos a Python a reconocer la raíz absoluta del proyecto antes de cualquier otra importación
+RAIZ_PROYECTO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if RAIZ_PROYECTO not in sys.path:
+    sys.path.insert(0, RAIZ_PROYECTO)
 
+# Ahora las importaciones modulares funcionarán de manera impecable
 from src.config import DEVICE
 from src.model import RedInmueblesMLP
 from src.evaluate import predecir_ensamble
@@ -19,12 +23,12 @@ meta_prod, columnas_modelo, redes_activas, metricas_modelo = None, None, [], {}
 async def lifespan(app: FastAPI):
     global meta_prod, columnas_modelo, redes_activas, metricas_modelo
     
-    # Aseguramos la búsqueda de los pesos directo en la raíz de la instancia en Render
-    RUTA_METADATOS = "data_meta.pth"
-    RUTA_PESOS = "ensemble_latest.pth"
+    # Rutas relativas directas desde la raíz del despliegue
+    RUTA_METADATOS = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
+    RUTA_PESOS = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
     
     if not os.path.exists(RUTA_METADATOS):
-        raise RuntimeError(f"No se encontró el archivo de metadatos en la raíz. Buscado en: {os.path.abspath(RUTA_METADATOS)}")
+        raise RuntimeError(f"No se encontró el archivo de metadatos binarios. Buscado en: {RUTA_METADATOS}")
 
     meta_prod = torch.load(RUTA_METADATOS, map_location=DEVICE)
     columnas_modelo = meta_prod["columnas_X"]
@@ -44,6 +48,9 @@ app = FastAPI(title="API Inmobiliaria Bogotá", version="2.5", lifespan=lifespan
 
 @app.post("/predecir")
 def predecir(inmueble: RequestInmueble):
+    if columnas_modelo is None:
+        raise HTTPException(status_code=503, detail="El modelo no ha sido cargado correctamente en el servidor.")
+        
     df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
     df["Área"] = inmueble.area
     df["Habitaciones"] = inmueble.habitaciones
