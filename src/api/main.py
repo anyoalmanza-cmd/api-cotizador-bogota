@@ -16,6 +16,7 @@ from src.model import RedInmueblesMLP
 from src.evaluate import predecir_ensamble
 from src.api.schemas import RequestInmueble
 
+# Variables globales
 meta_prod, columnas_modelo, redes_activas, metricas_modelo = None, None, [], {}
 
 @asynccontextmanager
@@ -36,11 +37,16 @@ def cargar_modelos_si_es_necesario():
     global meta_prod, columnas_modelo, redes_activas, metricas_modelo
     if meta_prod is not None: return 
     
-    # Asegúrate de que las rutas apunten a los archivos correctos
-    meta_prod = torch.load(os.path.join(RAIZ_PROYECTO, "data_meta.pth"), map_location=torch.device('cpu'))
+    ruta_meta = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
+    ruta_pesos = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
+    
+    if not os.path.exists(ruta_meta):
+        raise RuntimeError("No se encontraron los archivos del modelo.")
+
+    meta_prod = torch.load(ruta_meta, map_location=torch.device('cpu'))
     columnas_modelo = meta_prod["columnas_X"]
     metricas_modelo = meta_prod.get("metricas_test", {})
-    pesos = torch.load(os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth"), map_location=torch.device('cpu'))
+    pesos = torch.load(ruta_pesos, map_location=torch.device('cpu'))
 
     for i in range(meta_prod["num_modelos"]):
         net = RedInmueblesMLP(len(columnas_modelo))
@@ -57,16 +63,14 @@ def predecir(inmueble: RequestInmueble):
     df["Habitaciones"] = inmueble.habitaciones
     df["Baños"] = inmueble.banos
 
-    # Usamos los valores exactamente como llegan, sin .upper() ni .title()
     t_col = f"Tipo_{inmueble.tipo}"
     b_col = f"Barrio_{inmueble.barrio}"
     u_col = f"UPZ_{inmueble.upz}"
     
-    # Validación exacta
     if t_col not in df.columns or b_col not in df.columns or u_col not in df.columns:
         raise HTTPException(
             status_code=400, 
-            detail=f"Categoría no encontrada. Verifica: {t_col}, {b_col}, {u_col}"
+            detail=f"Categoría no válida. Buscado: {t_col}, {b_col}, {u_col}. Verifica que el modelo contenga estas categorías."
         )
 
     df[t_col], df[b_col], df[u_col] = 1.0, 1.0, 1.0
