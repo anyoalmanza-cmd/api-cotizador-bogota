@@ -1,0 +1,20 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Entornos virtuales
+.venv/
+env/
+venv/
+
+# Datos o pesos locales (No subir a Git)
+*.csv
+*.pt
+model_registry/
+models/*.pth
+models/*.pt
+
+# Variables de entorno secretas
+.env
