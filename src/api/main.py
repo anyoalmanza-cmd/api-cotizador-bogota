@@ -63,14 +63,22 @@ def predecir(inmueble: RequestInmueble):
     df["Habitaciones"] = inmueble.habitaciones
     df["Baños"] = inmueble.banos
 
-    t_col = f"Tipo_{inmueble.tipo}"
-    b_col = f"Barrio_{inmueble.barrio}"
-    u_col = f"UPZ_{inmueble.upz}"
+    # Normalización: Limpiamos los strings para asegurar que coincidan
+    # Usamos .strip() para quitar espacios accidentales
+    tipo_norm = inmueble.tipo.strip()
+    barrio_norm = inmueble.barrio.strip()
+    upz_norm = inmueble.upz.strip()
+
+    t_col = f"Tipo_{tipo_norm}"
+    b_col = f"Barrio_{barrio_norm}"
+    u_col = f"UPZ_{upz_norm}"
     
+    # Validación con depuración detallada
     if t_col not in df.columns or b_col not in df.columns or u_col not in df.columns:
+        # Aquí verás exactamente qué estamos intentando buscar vs lo que existe
         raise HTTPException(
             status_code=400, 
-            detail=f"Categoría no válida. Buscado: {t_col}, {b_col}, {u_col}. Verifica que el modelo contenga estas categorías."
+            detail=f"Modelo espera estas columnas: {list(df.columns[:5])}... Pero intentamos buscar: T:{t_col}, B:{b_col}, U:{u_col}"
         )
 
     df[t_col], df[b_col], df[u_col] = 1.0, 1.0, 1.0
