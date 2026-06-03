@@ -16,6 +16,7 @@ def preparar_datos():
         file_path,
     )
 
+    # Limpieza de datos
     df_raw["Valor_Limpio"] = (
         df_raw["Valor"]
         .astype(str)
@@ -37,13 +38,16 @@ def preparar_datos():
     df = df[["Tipo", "Área", "Habitaciones", "Baños", "Barrio", "UPZ", "Valor_Millones"]].dropna()
     df = df[(df["Área"] > 0) & (df["Habitaciones"] > 0) & (df["Baños"] > 0) & (df["Valor_Millones"] > 0)].copy()
 
-    lista_barrios = sorted(df["Barrio"].unique().tolist())
-    lista_tipos = sorted(df["Tipo"].unique().tolist())
-    lista_upz = sorted(df["UPZ"].unique().tolist())
-
+    # Creación de dummies
     df_modelo = pd.get_dummies(df, columns=["Tipo", "Barrio", "UPZ"], dtype=float)
 
-    columnas_X = [c for c in df_modelo.columns if c != "Valor_Millones"]
+    # --- CAMBIO CRÍTICO: ORDEN ALFABÉTICO ESTRICTO ---
+    # Esto asegura que el orden de las columnas coincida con el esperado por la API
+    columnas_X = sorted([c for c in df_modelo.columns if c != "Valor_Millones"])
+    
+    # Reordenar el dataframe para que las columnas sigan el orden alfabético
+    df_modelo = df_modelo[columnas_X + ["Valor_Millones"]]
+
     X = df_modelo[columnas_X].values.astype(np.float32)
     y = df_modelo["Valor_Millones"].values.astype(np.float32).reshape(-1, 1)
 
@@ -68,10 +72,10 @@ def preparar_datos():
         "y_val": ((y_val - y_mean) / y_std).astype(np.float32),
         "y_test": ((y_test - y_mean) / y_std).astype(np.float32),
         "y_test_real": np.expm1(y_test).astype(np.float32),
-        "columnas_X": columnas_X,
-        "lista_barrios": lista_barrios,
-        "lista_tipos": lista_tipos,
-        "lista_upz": lista_upz,
+        "columnas_X": columnas_X, # Lista ordenada alfabéticamente
+        "lista_barrios": sorted(df["Barrio"].unique().tolist()),
+        "lista_tipos": sorted(df["Tipo"].unique().tolist()),
+        "lista_upz": sorted(df["UPZ"].unique().tolist()),
         "mapa_barrio_upz": mapa_barrio_upz,
         "X_mean": X_mean, "X_std": X_std, "y_mean": y_mean, "y_std": y_std
     }
