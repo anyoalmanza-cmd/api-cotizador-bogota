@@ -69,24 +69,21 @@ def predecir(inm: RequestInmueble):
         logger.info(f"Input Normalizado (primeros 5 valores): {scaled[0, :5]}")
         
         # 3. Inferencia
-        mean, std, _ = predecir_ensamble(
-            redes_activas, scaled, 
-            meta_prod["y_mean"].numpy(), 
-            meta_prod["y_std"].numpy()
-        )
-        
-        # 4. Cálculo del valor real completo (COP)
-        # Convertimos de escala logarítmica a millones: np.expm1(x) = exp(x) - 1
-        valor_en_millones = np.expm1(float(mean[0][0]))
-        
-        # Convertimos a valor completo (pesos)
-        valor_final_cop = valor_en_millones * 1_000_000
-        incertidumbre_final_cop = float(std[0][0]) * 1_000_000
-        
-        logger.info(f"Predicción final completa: {valor_final_cop}")
-        
-        return {
-            "status": "success",
-            "precio_estimado_cop": round(max(0.0, valor_final_cop), 2),
-            "incertidumbre_cop": round(incertidumbre_final_cop, 2)
-        }
+mean, std, _ = predecir_ensamble(
+    redes_activas, scaled, 
+    meta_prod["y_mean"].numpy(), 
+    meta_prod["y_std"].numpy()
+)
+
+# 4. Obtención del valor real y formateo
+# Aplicamos expm1 para revertir la escala logarítmica y multiplicamos por 1.000.000
+valor_en_millones = np.expm1(float(mean[0][0]))
+valor_final = valor_en_millones * 1_000_000
+incertidumbre_final = float(std[0][0]) * 1_000_000
+
+return {
+    "status": "success",
+    # Usamos :.0f para asegurar que sea un número entero y lo formateamos con puntos
+    "precio_estimado_cop": f"${int(valor_final):,.0f}".replace(",", "."),
+    "incertidumbre_cop": f"${int(incertidumbre_final):,.0f}".replace(",", ".")
+}
