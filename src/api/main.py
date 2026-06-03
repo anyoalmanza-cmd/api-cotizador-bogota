@@ -66,15 +66,15 @@ def predecir(inm: RequestInmueble):
         df[mapa_normalizado[b_key]] = 1.0
         df[mapa_normalizado[u_key]] = 1.0
         
-        # Normalización
+        # 1. Normalización
         scaled = (df.values.astype('float32') - meta_prod["X_mean"].numpy()) / meta_prod["X_std"].numpy()
         
-        # Predicción (Devuelve valores en escala logarítmica)
-        mean_log, std_log, _ = predecir_ensamble(redes_activas, scaled, meta_prod["y_mean"].numpy(), meta_prod["y_std"].numpy())
+        # 2. Predicción: predecir_ensamble YA devuelve el precio real en millones
+        mean, std, _ = predecir_ensamble(redes_activas, scaled, meta_prod["y_mean"].numpy(), meta_prod["y_std"].numpy())
 
-        # CORRECCIÓN: Aplicar np.expm1 para deshacer log1p y obtener el valor real en millones
-        valor_estimado = float(np.expm1(np.array(mean_log).ravel()[0]))
-        valor_incertidumbre = float(np.expm1(np.array(std_log).ravel()[0]))
+        # 3. Extraer valores directos (ya convertidos a millones por evaluate.py)
+        valor_estimado = float(np.array(mean).ravel()[0])
+        valor_incertidumbre = float(np.array(std).ravel()[0])
         
         met = meta_prod.get("metricas", {})
         
