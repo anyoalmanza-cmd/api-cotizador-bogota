@@ -51,31 +51,33 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 @app.post("/predecir")
 def predecir(inm: RequestInmueble):
     try:
-        t_key, b_key, u_key = normalizar_str(f"tipo_{inm.tipo}"), normalizar_str(f"barrio_{inm.barrio}"), normalizar_str(f"upz_{inm.upz}")
+        t_key = normalizar_str(f"tipo_{inm.tipo}")
+        b_key = normalizar_str(f"barrio_{inm.barrio}")
+        u_key = normalizar_str(f"upz_{inm.upz}")
         
-        # 1. Construcción del DataFrame
+        # 1. Construcción del DataFrame con validación de existencia
         df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
         df.loc[0, "Área"] = float(inm.area)
         df.loc[0, "Habitaciones"] = float(inm.habitaciones)
         df.loc[0, "Baños"] = float(inm.banos)
-        df.loc[0, mapa_normalizado[t_key]] = 1.0
-        df.loc[0, mapa_normalizado[b_key]] = 1.0
-        df.loc[0, mapa_normalizado[u_key]] = 1.0
         
-        # 2. Escalamiento (DEPURACIÓN)
+        # Validar claves antes de asignar
+        if t_key in mapa_normalizado: df.loc[0, mapa_normalizado[t_key]] = 1.0
+        if b_key in mapa_normalizado: df.loc[0, mapa_normalizado[b_key]] = 1.0
+        if u_key in mapa_normalizado: df.loc[0, mapa_normalizado[u_key]] = 1.0
+        
+        # 2. Escalamiento
         X_input = df.values.astype(np.float32)
         scaled = (X_input - meta_prod["X_mean"].numpy()) / meta_prod["X_std"].numpy()
         
-        logger.info(f"Input Normalizado (primeros 5 valores): {scaled[0, :5]}")
-        
-    # 3. Inferencia
+        # 3. Inferencia
         mean, std, _ = predecir_ensamble(
             redes_activas, scaled, 
             meta_prod["y_mean"].numpy(), 
             meta_prod["y_std"].numpy()
         )
         
-   # 4. Cálculo final (en pesos completos)
+        # 4. Cálculo final (reversión de log1p y escala)
         valor_en_millones = np.expm1(float(mean[0][0]))
         valor_final_pesos = valor_en_millones * 1_000_000
         incertidumbre_pesos = float(std[0][0]) * 1_000_000
@@ -87,4 +89,4 @@ def predecir(inm: RequestInmueble):
         }
     except Exception as e:
         logger.exception("Error en predicción")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error procesando datos: {str(e)}")
