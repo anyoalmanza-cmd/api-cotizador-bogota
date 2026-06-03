@@ -68,22 +68,27 @@ def predecir(inm: RequestInmueble):
         
         logger.info(f"Input Normalizado (primeros 5 valores): {scaled[0, :5]}")
         
-        # 3. Inferencia
-mean, std, _ = predecir_ensamble(
-    redes_activas, scaled, 
-    meta_prod["y_mean"].numpy(), 
-    meta_prod["y_std"].numpy()
-)
-
-# 4. Obtención del valor real y formateo
-# Aplicamos expm1 para revertir la escala logarítmica y multiplicamos por 1.000.000
-valor_en_millones = np.expm1(float(mean[0][0]))
-valor_final = valor_en_millones * 1_000_000
-incertidumbre_final = float(std[0][0]) * 1_000_000
-
-return {
-    "status": "success",
-    # Usamos :.0f para asegurar que sea un número entero y lo formateamos con puntos
-    "precio_estimado_cop": f"${int(valor_final):,.0f}".replace(",", "."),
-    "incertidumbre_cop": f"${int(incertidumbre_final):,.0f}".replace(",", ".")
-}
+      # 3. Inferencia
+        mean, std, _ = predecir_ensamble(
+            redes_activas, scaled, 
+            meta_prod["y_mean"].numpy(), 
+            meta_prod["y_std"].numpy()
+        )
+        
+        # 4. Cálculo directo
+        # Si el valor ya está en la escala correcta (aprox 367.989.310), 
+        # solo revertimos el logaritmo y convertimos a entero.
+        valor_estimado = np.expm1(float(mean[0][0]))
+        incertidumbre = float(std[0][0])
+        
+        # Multiplicamos por 1.000.000 solo si el modelo predice en 'unidades de millones'
+        # Si el resultado ya es ~367.989.310, ajusta este factor según tu modelo.
+        valor_final = valor_estimado * 1_000_000 
+        incertidumbre_final = incertidumbre * 1_000_000
+        
+        return {
+            "status": "success",
+            # Usamos el formato de miles con punto y sin letra 'M'
+            "precio_estimado_cop": f"${int(valor_final):,.0f}".replace(",", "."),
+            "incertidumbre_cop": f"${int(incertidumbre_final):,.0f}".replace(",", ".")
+        }
