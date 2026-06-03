@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-# Configuración de rutas para que funcione en cualquier entorno
+# Configuración de rutas para Render
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RAIZ_PROYECTO = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
 if RAIZ_PROYECTO not in sys.path: sys.path.insert(0, RAIZ_PROYECTO)
@@ -21,7 +21,7 @@ meta_prod, columnas_modelo, redes_activas = None, None, []
 mapa_normalizado = {}
 
 def normalizar_str(s):
-    """Limpia strings para que coincidan con las columnas del modelo (sin tildes/espacios)."""
+    """Limpia tildes, espacios y minúsculas para hacer coincidir inputs con columnas del modelo."""
     s = s.lower().strip().replace(" ", "").replace("á", "a").replace("é", "e")
     s = s.replace("í", "i").replace("ó", "o").replace("ú", "u")
     return s
@@ -30,14 +30,13 @@ def normalizar_str(s):
 async def lifespan(app: FastAPI):
     global meta_prod, columnas_modelo, redes_activas, mapa_normalizado
     
-    # Cargar modelos y metadatos
     ruta_meta = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
     ruta_pesos = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
     
     meta_prod = torch.load(ruta_meta, map_location=torch.device('cpu'))
     columnas_modelo = list(meta_prod["columnas_X"])
     
-    # Crear mapa de normalización
+    # Crear mapa: 'barrio_cedritos' -> 'Barrio_Cedritos'
     for col in columnas_modelo:
         mapa_normalizado[normalizar_str(col)] = col
         
@@ -56,16 +55,16 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 @app.post("/predecir")
 def predecir(inm: RequestInmueble):
     try:
-        # 1. Normalizar las llaves de búsqueda
+        # 1. Normalizar inputs
         t_key = normalizar_str(f"tipo_{inm.tipo}")
         b_key = normalizar_str(f"barrio_{inm.barrio}")
         u_key = normalizar_str(f"upz_{inm.upz}")
         
-        # 2. Validar existencia
+        # 2. Validar existencias en el modelo
         if t_key not in mapa_normalizado or b_key not in mapa_normalizado or u_key not in mapa_normalizado:
-            raise HTTPException(status_code=400, detail=f"Categoría no válida. Verifica el Barrio o la UPZ.")
+            raise HTTPException(status_code=400, detail="Categoría no encontrada. Revisa Barrio/UPZ.")
 
-        # 3. Construcción del DataFrame de entrada (One-Hot)
+        # 3. Construcción del DataFrame (One-Hot)
         df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
         df["Área"] = float(inm.area)
         df["Habitaciones"] = float(inm.habitaciones)
@@ -74,13 +73,14 @@ def predecir(inm: RequestInmueble):
         df[mapa_normalizado[b_key]] = 1.0
         df[mapa_normalizado[u_key]] = 1.0
         
-        # 4. Predicción robusta
+        # 4. Predicción
         scaled = (df.values.astype('float32') - meta_prod["X_mean"].numpy()) / meta_prod["X_std"].numpy()
         mean, std, _ = predecir_ensamble(redes_activas, scaled, meta_prod["y_mean"].numpy(), meta_prod["y_std"].numpy())
 
-        # 5. Corrección del error de dimensionalidad: Convertir arrays a escalares puros
-        valor_estimado = float(np.array(mean).flatten()[0])
-        valor_incertidumbre = float(np.array(std).flatten()[0])
+        # 5. Corrección de error de dimensionalidad (Aplanado a escalar)
+        # Esto extrae el número del array de numpy asegurando que sea un float puro
+        valor_estimado = float(np.array(mean).ravel()[0])
+        valor_incertidumbre = float(np.array(std).ravel()[0])
         
         met = meta_prod.get("metricas", {})
         
@@ -94,6 +94,4 @@ def predecir(inm: RequestInmueble):
             }
         }
     except Exception as e:
-        # Log del error detallado para que sepas qué pasó en el servidor
-        print(f"Error critico: {str(e)}") 
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
