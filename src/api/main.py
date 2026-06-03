@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-# Configuración de rutas
+# Configuración de rutas para Render
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RAIZ_PROYECTO = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
 if RAIZ_PROYECTO not in sys.path: sys.path.insert(0, RAIZ_PROYECTO)
@@ -21,7 +21,10 @@ meta_prod, columnas_modelo, redes_activas = None, None, []
 mapa_normalizado = {}
 
 def normalizar_str(s):
-    return s.lower().strip().replace(" ", "").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+    """Limpia tildes, espacios y minúsculas para hacer coincidir inputs con columnas del modelo."""
+    s = s.lower().strip().replace(" ", "").replace("á", "a").replace("é", "e")
+    s = s.replace("í", "i").replace("ó", "o").replace("ú", "u")
+    return s
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +36,7 @@ async def lifespan(app: FastAPI):
     meta_prod = torch.load(ruta_meta, map_location=torch.device('cpu'))
     columnas_modelo = list(meta_prod["columnas_X"])
     
+    # Crear mapa: 'barrio_cedritos' -> 'Barrio_Cedritos'
     for col in columnas_modelo:
         mapa_normalizado[normalizar_str(col)] = col
         
@@ -51,13 +55,16 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 @app.post("/predecir")
 def predecir(inm: RequestInmueble):
     try:
+        # 1. Normalizar inputs
         t_key = normalizar_str(f"tipo_{inm.tipo}")
         b_key = normalizar_str(f"barrio_{inm.barrio}")
         u_key = normalizar_str(f"upz_{inm.upz}")
         
+        # 2. Validar existencias en el modelo
         if t_key not in mapa_normalizado or b_key not in mapa_normalizado or u_key not in mapa_normalizado:
-            raise HTTPException(status_code=400, detail="Categoría no encontrada.")
+            raise HTTPException(status_code=400, detail="Categoría no encontrada. Revisa Barrio/UPZ.")
 
+        # 3. Construcción del DataFrame (One-Hot)
         df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
         df["Área"] = float(inm.area)
         df["Habitaciones"] = float(inm.habitaciones)
@@ -66,13 +73,12 @@ def predecir(inm: RequestInmueble):
         df[mapa_normalizado[b_key]] = 1.0
         df[mapa_normalizado[u_key]] = 1.0
         
-        # 1. Normalización
+        # 4. Predicción
         scaled = (df.values.astype('float32') - meta_prod["X_mean"].numpy()) / meta_prod["X_std"].numpy()
-        
-        # 2. Predicción: predecir_ensamble YA devuelve el precio real en millones
         mean, std, _ = predecir_ensamble(redes_activas, scaled, meta_prod["y_mean"].numpy(), meta_prod["y_std"].numpy())
 
-        # 3. Extraer valores directos (ya convertidos a millones por evaluate.py)
+        # 5. Corrección de error de dimensionalidad (Aplanado a escalar)
+        # Esto extrae el número del array de numpy asegurando que sea un float puro
         valor_estimado = float(np.array(mean).ravel()[0])
         valor_incertidumbre = float(np.array(std).ravel()[0])
         
