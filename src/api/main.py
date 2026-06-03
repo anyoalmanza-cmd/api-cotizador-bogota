@@ -53,7 +53,7 @@ def predecir(inm: RequestInmueble):
     try:
         t_key, b_key, u_key = normalizar_str(f"tipo_{inm.tipo}"), normalizar_str(f"barrio_{inm.barrio}"), normalizar_str(f"upz_{inm.upz}")
         
-        # 1. Construcción robusta del DataFrame
+        # 1. Construcción del DataFrame
         df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
         df.loc[0, "Área"] = float(inm.area)
         df.loc[0, "Habitaciones"] = float(inm.habitaciones)
