@@ -75,15 +75,18 @@ def predecir(inm: RequestInmueble):
             meta_prod["y_std"].numpy()
         )
         
-        # 4. Verificación matemática
-        valor_estimado = float(mean[0][0])
-        logger.info(f"Predicción final resultante: {valor_estimado}")
+        # 4. Cálculo del valor real completo (COP)
+        # Convertimos de escala logarítmica a millones: np.expm1(x) = exp(x) - 1
+        valor_en_millones = np.expm1(float(mean[0][0]))
+        
+        # Convertimos a valor completo (pesos)
+        valor_final_cop = valor_en_millones * 1_000_000
+        incertidumbre_final_cop = float(std[0][0]) * 1_000_000
+        
+        logger.info(f"Predicción final completa: {valor_final_cop}")
         
         return {
             "status": "success",
-            "precio_estimado_millones_cop": round(max(0.0, valor_estimado), 2),
-            "incertidumbre_millones": round(float(std[0][0]), 2)
+            "precio_estimado_cop": round(max(0.0, valor_final_cop), 2),
+            "incertidumbre_cop": round(incertidumbre_final_cop, 2)
         }
-    except Exception as e:
-        logger.exception("Error en predicción")
-        raise HTTPException(status_code=500, detail=str(e))
