@@ -68,27 +68,23 @@ def predecir(inm: RequestInmueble):
         
         logger.info(f"Input Normalizado (primeros 5 valores): {scaled[0, :5]}")
         
-      # 3. Inferencia
+     # 3. Inferencia
         mean, std, _ = predecir_ensamble(
             redes_activas, scaled, 
             meta_prod["y_mean"].numpy(), 
             meta_prod["y_std"].numpy()
         )
         
-        # 4. Cálculo directo
-        # Si el valor ya está en la escala correcta (aprox 367.989.310), 
-        # solo revertimos el logaritmo y convertimos a entero.
-        valor_estimado = np.expm1(float(mean[0][0]))
-        incertidumbre = float(std[0][0])
+        # 4. Cálculo real
+        # Revertir log1p y convertir a valor nominal total (pesos)
+        valor_en_millones = np.expm1(float(mean[0][0]))
+        valor_final_pesos = valor_en_millones * 1_000_000
+        incertidumbre_pesos = float(std[0][0]) * 1_000_000
         
-        # Multiplicamos por 1.000.000 solo si el modelo predice en 'unidades de millones'
-        # Si el resultado ya es ~367.989.310, ajusta este factor según tu modelo.
-        valor_final = valor_estimado * 1_000_000 
-        incertidumbre_final = incertidumbre * 1_000_000
-        
+        # 5. Formateo estricto para evitar la "M"
+        # Usamos :.0f para mostrar el entero sin decimales ni letras adicionales
         return {
             "status": "success",
-            # Usamos el formato de miles con punto y sin letra 'M'
-            "precio_estimado_cop": f"${int(valor_final):,.0f}".replace(",", "."),
-            "incertidumbre_cop": f"${int(incertidumbre_final):,.0f}".replace(",", ".")
+            "precio_estimado_cop": f"${int(valor_final_pesos):,.0f}".replace(",", "."),
+            "incertidumbre_cop": f"${int(incertidumbre_pesos):,.0f}".replace(",", ".")
         }
