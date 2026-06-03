@@ -75,14 +75,14 @@ def predecir(inm: RequestInmueble):
             meta_prod["y_std"].numpy()
         )
         
-        # 4. Cálculo final (en pesos completos)
+    # 4. Cálculo final (en pesos completos)
         valor_en_millones = np.expm1(float(mean[0][0]))
         valor_final_pesos = valor_en_millones * 1_000_000
         incertidumbre_pesos = float(std[0][0]) * 1_000_000
         
         return {
             "status": "success",
-            # Se envía el valor formateado como string (ej: 367.989.310)
+            # Aquí están los nombres exactos que el frontend debe recibir
             "precio_estimado_cop": f"${int(valor_final_pesos):,.0f}".replace(",", "."),
             "incertidumbre_cop": f"± ${int(incertidumbre_pesos):,.0f}".replace(",", ".")
         }
