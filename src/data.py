@@ -6,7 +6,7 @@ from kagglehub import KaggleDatasetAdapter
 from sklearn.model_selection import train_test_split
 
 def normalizar_nombre(s):
-    # Esta es la ÚNICA forma de limpiar nombres para que coincidan con la API
+   
     return s.lower().strip().replace(" ", "").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
 
 def preparar_datos():
