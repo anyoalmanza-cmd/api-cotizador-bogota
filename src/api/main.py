@@ -68,23 +68,24 @@ def predecir(inm: RequestInmueble):
         
         logger.info(f"Input Normalizado (primeros 5 valores): {scaled[0, :5]}")
         
-     # 3. Inferencia
+    # 3. Inferencia
         mean, std, _ = predecir_ensamble(
             redes_activas, scaled, 
             meta_prod["y_mean"].numpy(), 
             meta_prod["y_std"].numpy()
         )
         
-        # 4. Cálculo real
-        # Revertir log1p y convertir a valor nominal total (pesos)
+        # 4. Cálculo final (en pesos completos)
         valor_en_millones = np.expm1(float(mean[0][0]))
         valor_final_pesos = valor_en_millones * 1_000_000
         incertidumbre_pesos = float(std[0][0]) * 1_000_000
         
-        # 5. Formateo estricto para evitar la "M"
-        # Usamos :.0f para mostrar el entero sin decimales ni letras adicionales
         return {
             "status": "success",
+            # Se envía el valor formateado como string (ej: 367.989.310)
             "precio_estimado_cop": f"${int(valor_final_pesos):,.0f}".replace(",", "."),
-            "incertidumbre_cop": f"${int(incertidumbre_pesos):,.0f}".replace(",", ".")
+            "incertidumbre_cop": f"± ${int(incertidumbre_pesos):,.0f}".replace(",", ".")
         }
+    except Exception as e:
+        logger.exception("Error en predicción")
+        raise HTTPException(status_code=500, detail=str(e))
