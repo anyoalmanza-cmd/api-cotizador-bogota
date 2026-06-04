@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cotizador de Inmuebles — Bogotá</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f4f6f9;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a3a5c;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      background: #f8fafc;
+      transition: border-color 0.2s;
+      appearance: none;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #2563eb;
+      background: #fff;
+    }
+
+    .search-wrap { position: relative; }
+    .search-wrap input[type="search"] {
+      padding-right: 2rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+    .search-wrap select { height: 7rem; }
+
+    button[type="submit"] {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.75rem;
+      background: #1d4ed8;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button[type="submit"]:hover { background: #1e40af; }
+    button[type="submit"]:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    #resultado {
+      margin-top: 1.5rem;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+    .res-header {
+      background: #1d4ed8;
+      color: #fff;
+      padding: 0.75rem 1rem;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .res-body { padding: 1rem; background: #eff6ff; }
+    .res-precio {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #1d4ed8;
+    }
+    .res-rango {
+      font-size: 0.85rem;
+      color: #475569;
+      margin-top: 0.25rem;
+    }
+    .res-metricas {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .res-metricas span { background: #dbeafe; padding: 0.2rem 0.5rem; border-radius: 4px; }
+
+    .error-box {
+      margin-top: 1.5rem;
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: #b91c1c;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .loading { color: #64748b; font-size: 0.9rem; margin-top: 1rem; display: none; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Cotizador de Inmuebles</h1>
+  <p class="subtitle">Estimación de precio — Bogotá D.C.</p>
+
+  <form id="form" novalidate>
+    <div class="grid">
+
+      <div class="full">
+        <label for="tipo">Tipo de inmueble</label>
+        <select id="tipo" name="tipo" required>
+          <option value="">Cargando…</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="area">Área (m²)</label>
+        <input type="number" id="area" name="area" min="10" max="2000" step="0.5" placeholder="Ej: 80" required />
+      </div>
+
+      <div>
+        <label for="habitaciones">Habitaciones</label>
+        <input type="number" id="habitaciones" name="habitaciones" min="0" max="20" step="1" placeholder="Ej: 3" required />
+      </div>
+
+      <div class="full">
+        <label for="banos">Baños</label>
+        <input type="number" id="banos" name="banos" min="0" max="20" step="1" placeholder="Ej: 2" required />
+      </div>
+
+      <div class="full search-wrap">
+        <label for="barrio">Barrio</label>
+        <input type="search" id="buscar-barrio" placeholder="Filtrar barrio…" autocomplete="off" />
+        <select id="barrio" name="barrio" size="5" required>
+          <option value="">Cargando…</option>
+        </select>
+      </div>
+
+      <div class="full search-wrap">
+        <label for="upz">UPZ</label>
+        <input type="search" id="buscar-upz" placeholder="Filtrar UPZ…" autocomplete="off" />
+        <select id="upz" name="upz" size="5" required>
+          <option value="">Cargando…</option>
+        </select>
+      </div>
+
+    </div>
+
+    <button type="submit" id="btn">Cotizar</button>
+    <p class="loading" id="loading">Calculando precio estimado…</p>
+  </form>
+
+  <div id="resultado">
+    <div class="res-header">Resultado</div>
+    <div class="res-body">
+      <div class="res-precio" id="res-precio"></div>
+      <div class="res-rango" id="res-rango"></div>
+      <div class="res-metricas" id="res-metricas"></div>
+    </div>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+</div>
+
+<script>
+  let todosBarrios = [], todosUpzs = [];
+
+  async function cargarOpciones() {
+    try {
+      const r = await fetch('/opciones');
+      const data = await r.json();
+
+      llenarSelect('tipo', data.tipos);
+      todosBarrios = data.barrios;
+      todosUpzs    = data.upzs;
+      llenarSelect('barrio', data.barrios);
+      llenarSelect('upz', data.upzs);
+    } catch (e) {
+      document.getElementById('tipo').innerHTML = '<option value="">Error al cargar</option>';
+    }
+  }
+
+  function llenarSelect(id, lista) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = lista.map(v => `<option value="${v}">${v}</option>`).join('');
+    if (lista.length > 0) sel.value = lista[0];
+  }
+
+  function filtrarSelect(inputId, selectId, lista) {
+    document.getElementById(inputId).addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      const filtrada = q ? lista.filter(v => v.toLowerCase().includes(q)) : lista;
+      llenarSelect(selectId, filtrada);
+    });
+  }
+
+  filtrarSelect('buscar-barrio', 'barrio', todosBarrios);
+  filtrarSelect('buscar-upz', 'upz', todosUpzs);
+
+  // Re-adjuntar filtros tras cargar datos (los arrays se llenan asíncronamente)
+  async function init() {
+    await cargarOpciones();
+    document.getElementById('buscar-barrio').oninput = function() {
+      const q = this.value.toLowerCase();
+      llenarSelect('barrio', q ? todosBarrios.filter(v => v.toLowerCase().includes(q)) : todosBarrios);
+    };
+    document.getElementById('buscar-upz').oninput = function() {
+      const q = this.value.toLowerCase();
+      llenarSelect('upz', q ? todosUpzs.filter(v => v.toLowerCase().includes(q)) : todosUpzs);
+    };
+  }
+  init();
+
+  document.getElementById('form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn    = document.getElementById('btn');
+    const loading = document.getElementById('loading');
+    const resultado = document.getElementById('resultado');
+    const errorBox  = document.getElementById('error-box');
+
+    resultado.style.display = 'none';
+    errorBox.style.display  = 'none';
+    btn.disabled  = true;
+    loading.style.display = 'block';
+
+    const payload = {
+      tipo:         document.getElementById('tipo').value,
+      area:         parseFloat(document.getElementById('area').value),
+      habitaciones: parseFloat(document.getElementById('habitaciones').value),
+      banos:        parseFloat(document.getElementById('banos').value),
+      barrio:       document.getElementById('barrio').value,
+      upz:          document.getElementById('upz').value,
+    };
+
+    try {
+      const res  = await fetch('/predecir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Error desconocido');
+      }
+
+      const p   = data.precio_estimado_millones_cop;
+      const inc = data.incertidumbre_millones;
+      document.getElementById('res-precio').textContent =
+        `$ ${p.toFixed(2)} M COP`;
+      document.getElementById('res-rango').textContent =
+        `Rango estimado: $${(p - inc).toFixed(2)} M — $${(p + inc).toFixed(2)} M COP`;
+      document.getElementById('res-metricas').innerHTML =
+        `<span>MAE ${data.metricas.MAE} M</span><span>MAPE ${data.metricas.MAPE}%</span>`;
+
+      resultado.style.display = 'block';
+    } catch (err) {
+      errorBox.textContent    = 'Error: ' + err.message;
+      errorBox.style.display  = 'block';
+    } finally {
+      btn.disabled  = false;
+      loading.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>

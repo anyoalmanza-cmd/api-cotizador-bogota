@@ -1,11 +1,15 @@
 import sys
 import os
+import pathlib
 import pandas as pd
 import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
+
+TEMPLATES_DIR = pathlib.Path(__file__).parent / "templates"
 
 # Configuración de rutas para Render
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -53,6 +57,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="API Inmobiliaria", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+@app.get("/", response_class=FileResponse)
+def formulario():
+    return FileResponse(TEMPLATES_DIR / "index.html", media_type="text/html")
+
+@app.get("/opciones")
+def opciones():
+    tipos   = sorted(set(mapa_normalizado[k].split("_", 1)[1] for k in mapa_normalizado if k.startswith("tipo_")))
+    barrios = sorted(set(mapa_normalizado[k].split("_", 1)[1] for k in mapa_normalizado if k.startswith("barrio_")))
+    upzs    = sorted(set(mapa_normalizado[k].split("_", 1)[1] for k in mapa_normalizado if k.startswith("upz_")))
+    return {"tipos": tipos, "barrios": barrios, "upzs": upzs}
 
 @app.post("/predecir")
 def predecir(inm: RequestInmueble):
