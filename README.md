@@ -2,6 +2,8 @@
 
 Proyecto modular para estimación de precios inmobiliarios en Bogotá mediante un ensamble Deep Learning (PyTorch) y servido con FastAPI.
 
+hay que aprender git y github
+
 ## Comandos Rápidos
 1. Instalar requerimientos: `pip install -r requirements.txt`
 2. Entrenar modelos: `make train`
