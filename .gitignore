@@ -9,10 +9,10 @@ __pycache__/
 env/
 venv/
 
-# Datos o pesos locales (No subir a Git)
+# Datos locales
 *.csv
-*.pt
-model_registry/
+
+# Pesos grandes (los del modelo productivo van en model_registry/ y sí se versionan)
 models/*.pth
 models/*.pt
 
