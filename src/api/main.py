@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     global meta_prod, columnas_modelo, redes_activas, mapa_normalizado
     
     ruta_meta = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
-    ruta_pesos = os.path.join(RAIZ_PROYECTO, "ensemble_latest.pth")
+    ruta_pesos = os.path.join(RAIZ_PROYECTO, "ensamble_latest.pth")
     
     meta_prod = torch.load(ruta_meta, map_location=torch.device('cpu'))
     columnas_modelo = list(meta_prod["columnas_X"])
@@ -42,7 +42,8 @@ async def lifespan(app: FastAPI):
         
     pesos = torch.load(ruta_pesos, map_location=torch.device('cpu'))
     for p in pesos:
-        net = RedInmueblesMLP(len(columnas_modelo))
+        input_dim = p['net.0.weight'].shape[1]
+        net = RedInmueblesMLP(input_dim)
         net.load_state_dict(p)
         net.eval()
         redes_activas.append(net)

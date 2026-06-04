@@ -6,13 +6,13 @@ class RedInmueblesMLP(nn.Module):
     def __init__(self, input_dim, dropout=0.10):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(input_dim, 128),
+            nn.Linear(input_dim, 64),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(128, 64),
+            nn.Linear(64, 32),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(64, 1)
+            nn.Linear(32, 1)
         )
 
     def forward(self, x):
