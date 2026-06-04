@@ -15,6 +15,7 @@ if RAIZ_PROYECTO not in sys.path: sys.path.insert(0, RAIZ_PROYECTO)
 from src.model import RedInmueblesMLP
 from src.evaluate import predecir_ensamble
 from src.api.schemas import RequestInmueble
+from src.config import METADATOS_PATH, PESOS_PATH
 
 # Variables globales
 meta_prod, columnas_modelo, redes_activas = None, None, []
@@ -30,8 +31,8 @@ def normalizar_str(s):
 async def lifespan(app: FastAPI):
     global meta_prod, columnas_modelo, redes_activas, mapa_normalizado
     
-    ruta_meta = os.path.join(RAIZ_PROYECTO, "data_meta.pth")
-    ruta_pesos = os.path.join(RAIZ_PROYECTO, "ensamble_latest.pth")
+    ruta_meta = METADATOS_PATH
+    ruta_pesos = PESOS_PATH
     
     meta_prod = torch.load(ruta_meta, map_location=torch.device('cpu'))
     columnas_modelo = list(meta_prod["columnas_X"])
@@ -83,7 +84,7 @@ def predecir(inm: RequestInmueble):
         valor_estimado = float(np.array(mean).ravel()[0])
         valor_incertidumbre = float(np.array(std).ravel()[0])
         
-        met = meta_prod.get("metricas", {})
+        met = meta_prod.get("metricas_test", {})
         
         return {
             "status": "success",
