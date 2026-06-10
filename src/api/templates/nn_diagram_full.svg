@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+  <style>
+    .title { font: bold 28px sans-serif; fill:#b45309; }
+    .section { font: bold 18px sans-serif; fill:#111827; }
+    .node-label { font: 14px sans-serif; fill:#111827; }
+    .note { font: 13px sans-serif; fill:#374151; }
+    .box { fill:none; stroke:#9ca3af; stroke-dasharray:8 6; stroke-width:2; }
+    .input-node { fill:#ffebe6; stroke:#dc2626; stroke-width:2; }
+    .hidden-node { fill:#dbeafe; stroke:#2563eb; stroke-width:2; }
+    .output-node { fill:#dcfce7; stroke:#16a34a; stroke-width:2; }
+    .bias-node { fill:#f3f4f6; stroke:#6b7280; stroke-width:2; }
+    .arrow { stroke:#111827; stroke-width:2; fill:none; marker-end:url(#arrowhead); }
+    .label-bg { fill:#ffffffcc; }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#111827" />
+    </marker>
+  </defs>
+
+  <text x="40" y="40" class="title">RED NEURONAL</text>
+  <rect x="20" y="50" width="1160" height="440" rx="22" fill="none" stroke="#f59e0b" stroke-dasharray="12 8" stroke-width="3" />
+
+  <text x="70" y="90" class="section">ENTRADAS</text>
+  <text x="520" y="90" class="section">CAPAS OCULTAS</text>
+  <text x="1030" y="90" class="section">SALIDAS</text>
+
+  <!-- Input nodes -->
+  <g>
+    <circle cx="120" cy="160" r="24" class="input-node" />
+    <text x="96" y="165" class="node-label">x₁</text>
+    <circle cx="120" cy="230" r="24" class="input-node" />
+    <text x="96" y="235" class="node-label">x₂</text>
+    <circle cx="120" cy="300" r="24" class="input-node" />
+    <text x="93" y="305" class="node-label">...</text>
+    <circle cx="120" cy="370" r="24" class="input-node" />
+    <text x="92" y="375" class="node-label">xₙ</text>
+    <rect x="110" y="410" width="40" height="24" rx="6" class="bias-node" />
+    <text x="120" y="427" class="node-label">+1</text>
+  </g>
+
+  <!-- Hidden layer 1 -->
+  <g>
+    <rect x="255" y="120" width="240" height="290" rx="18" class="box" />
+    <text x="285" y="145" class="note">Capa oculta 1</text>
+    <text x="285" y="165" class="note">128 neuronas (representadas)</text>
+    <circle cx="360" cy="200" r="20" class="hidden-node" />
+    <circle cx="360" cy="260" r="20" class="hidden-node" />
+    <circle cx="360" cy="320" r="20" class="hidden-node" />
+    <circle cx="360" cy="380" r="20" class="hidden-node" />
+    <rect x="345" y="420" width="40" height="24" rx="6" class="bias-node" />
+    <text x="350" y="437" class="node-label">+1</text>
+  </g>
+
+  <!-- Hidden layer 2 -->
+  <g>
+    <rect x="565" y="120" width="240" height="290" rx="18" class="box" />
+    <text x="595" y="145" class="note">Capa oculta 2</text>
+    <text x="595" y="165" class="note">64 neuronas (representadas)</text>
+    <circle cx="675" cy="220" r="18" class="hidden-node" />
+    <circle cx="675" cy="270" r="18" class="hidden-node" />
+    <circle cx="675" cy="320" r="18" class="hidden-node" />
+    <rect x="660" y="360" width="40" height="24" rx="6" class="bias-node" />
+    <text x="670" y="377" class="node-label">+1</text>
+  </g>
+
+  <!-- Output nodes -->
+  <g>
+    <circle cx="1040" cy="210" r="26" class="output-node" />
+    <text x="1020" y="215" class="node-label">y₁</text>
+    <circle cx="1040" cy="290" r="26" class="output-node" />
+    <text x="1018" y="295" class="node-label">y₂</text>
+    <circle cx="1040" cy="370" r="26" class="output-node" />
+    <text x="1020" y="375" class="node-label">y₃</text>
+  </g>
+
+  <!-- Connections input -> hidden1 -->
+  <g>
+    <path d="M144,160 C230,160 295,200 338,200" class="arrow" />
+    <path d="M144,230 C230,230 295,260 338,260" class="arrow" />
+    <path d="M144,300 C230,300 295,320 338,320" class="arrow" />
+    <path d="M144,370 C230,370 295,380 338,380" class="arrow" />
+    <path d="M144,422 C230,422 295,434 338,434" class="arrow" />
+    <text x="390" y="205" class="note">W(1)</text>
+  </g>
+
+  <!-- Connections hidden1 -> hidden2 -->
+  <g>
+    <path d="M380,200 C470,200 540,220 650,220" class="arrow" />
+    <path d="M380,260 C470,260 540,270 650,270" class="arrow" />
+    <path d="M380,320 C470,320 540,315 650,320" class="arrow" />
+    <path d="M380,380 C470,380 540,360 650,360" class="arrow" />
+    <path d="M380,434 C470,434 540,380 650,380" class="arrow" />
+    <text x="600" y="205" class="note">W(2)</text>
+  </g>
+
+  <!-- Connections hidden2 -> output -->
+  <g>
+    <path d="M693,220 C760,220 840,210 1014,210" class="arrow" />
+    <path d="M693,270 C760,270 840,280 1014,290" class="arrow" />
+    <path d="M693,320 C760,320 840,300 1014,370" class="arrow" />
+  </g>
+
+  <rect x="890" y="450" width="260" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb" />
+  <text x="905" y="475" class="note">Esta figura muestra un modelo con:</text>
+  <text x="905" y="495" class="note">• Entradas (x₁...xₙ + bias)</text>
+  <text x="905" y="515" class="note">• Dos capas ocultas y tres salidas de ejemplo</text>
+</svg>
