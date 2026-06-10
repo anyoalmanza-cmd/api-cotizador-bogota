@@ -29,9 +29,7 @@ api-cotizador-bogota/
 
 ---
 
-## Explicación sencilla y práctica (sin tecnicismos)
-
-Abajo explico, con palabras claras, qué hace cada parte del proyecto y cómo funciona la predicción.
+## Documentación de estructura del proyecto
 
 - `src/config.py`: contiene las rutas y valores que usa todo el proyecto (por ejemplo, dónde se guardan los modelos). No hace cálculos, solo guarda direcciones y ajustes.
 - `src/data.py`: se encarga de conseguir los datos (desde Kaggle), limpiarlos y preparar las tablas que usan los modelos. Convierte textos como el barrio o el tipo de inmueble en columnas «sí/no» que el modelo puede entender, separa los datos en conjuntos para entrenar y validar, y calcula los valores necesarios para normalizar los datos.
@@ -43,16 +41,15 @@ Abajo explico, con palabras claras, qué hace cada parte del proyecto y cómo fu
   - otra ruta para enviar los datos de un inmueble y obtener el precio estimado y una medida de incertidumbre.
 - `src/api/templates/index.html`: una página web simple para que cualquier persona pueda probar el cotizador sin usar programación.
 
-Cómo funciona la predicción (pasos claros):
-1. El usuario envía datos del inmueble (tipo, área, habitaciones, baños, barrio, UPZ).
-2. La API construye una fila con las mismas columnas que usó el modelo al entrenar (por ejemplo, pone 1 en la columna del barrio elegido y 0 en las demás).
-3. Se aplican las mismas transformaciones que en entrenamiento (restar la media, dividir por la desviación) para que los números estén en la misma escala.
+## ¿Cómo funciona la predicción?
+1. El usuario envía datos del inmueble (tipo, área, habitaciones, baños, barrio, UPZ) a traves de https://api-cotizador-bogota.onrender.com/.
+2. La API construye una fila con las mismas columnas que usó el modelo al entrenar.
+3. Se aplican las mismas transformaciones que en entrenamiento para que los números estén en la misma escala.
 4. Cada red del ensamble calcula su predicción; se promedian los resultados para obtener el precio final y se calcula la variación entre modelos como indicador de incertidumbre.
 5. La API devuelve el precio estimado (en millones de COP) y una medida de cuán confiable es esa predicción.
 
-## La red en palabras sencillas
+## Modelo
 
-Piensa en la red como una caja de procesamiento con tres etapas:
 
 - Entrada: recibe todos los datos del inmueble (área, habitaciones, baños y una serie de indicadores para el tipo, barrio y UPZ).
 - Etapa intermedia 1: combina las entradas y las transforma en 128 números intermedios. Esto permite que la red capture relaciones entre variables (por ejemplo, cómo el área y el barrio juntos afectan el precio).
@@ -63,22 +60,8 @@ Durante el entrenamiento la red aplica pequeñas técnicas para generalizar mejo
 
 Además, en lugar de entrenar una sola red, el proyecto entrena varias redes con pequeñas variaciones en los datos y promedia sus respuestas. Esto suele dar estimaciones más estables y permite calcular una «incertidumbre» sobre la predicción.
 
-### Diagrama (visual rápido)
+### Estructura red neuronal
 
-```mermaid
-flowchart LR
-  A["Input: dim = input_dim"] --> B["Dense 128"]
-  B --> Bact["ReLU"]
-  Bact --> Bdrop["Dropout 0.10"]
-  Bdrop --> C["Dense 64"]
-  C --> Cact["ReLU"]
-  Cact --> Cdrop["Dropout 0.10"]
-  Cdrop --> D["Dense 1 - Output"]
-```
+![Diagrama de la red neuronal](src/api/templates/nn_diagram_full.svg)
 
 ---
-
-Si quieres, puedo además:
-- añadir una imagen SVG del diagrama al repositorio (para verlo en GitHub),
-- calcular automáticamente cuántos parámetros tiene la red usando los pesos guardados (si `model_registry/metadatos_latest.pt` existe).
-Dime cuál de esas opciones prefieres.
