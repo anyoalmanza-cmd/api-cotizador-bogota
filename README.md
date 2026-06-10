@@ -65,3 +65,14 @@ Además, en lugar de entrenar una sola red, el proyecto entrena varias redes con
 ![Diagrama de la red neuronal](src/api/templates/nn_diagram_full.svg)
 
 ---
+
+## Limitaciones del enfoque actual
+
+En este proyecto se trabaja con un dataset estático, no con una base de datos que se actualice continuamente. Esto implica varias limitaciones importantes:
+
+- Los precios estimados sólo son fiables dentro del rango y las condiciones de los datos con los que se entrenó el modelo.
+- Si en el mercado aparecen cambios recientes (nuevos barrios, variaciones fuertes en valor de m², cambios en comportamiento de precio), el modelo no los incluye hasta que se vuelva a entrenar con datos nuevos.
+- Al no existir un flujo de datos continuo, el sistema no aprende automáticamente de transacciones recientes ni de nuevas propiedades.
+- La calidad de la predicción depende directamente de la forma en que se limpien y preparen los datos iniciales; cualquier sesgo o error del dataset también se traslada al modelo.
+
+Por eso, este tipo de proyecto es útil para hacer estimaciones generales y analizar tendencias, pero no reemplaza una base de datos en tiempo real ni una fuente de datos que se alimente constantemente.
