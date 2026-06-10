@@ -67,13 +67,13 @@ Además, en lugar de entrenar una sola red, el proyecto entrena varias redes con
 
 ```mermaid
 flowchart LR
-  A[Input: dim = input_dim] --> B[Dense 128]
-  B --> Bact[ReLU]
-  Bact --> Bdrop[Dropout 0.10]
-  Bdrop --> C[Dense 64]
-  C --> Cact[ReLU]
-  Cact --> Cdrop[Dropout 0.10]
-  Cdrop --> D[Dense 1 (Output)]
+  A["Input: dim = input_dim"] --> B["Dense 128"]
+  B --> Bact["ReLU"]
+  Bact --> Bdrop["Dropout 0.10"]
+  Bdrop --> C["Dense 64"]
+  C --> Cact["ReLU"]
+  Cact --> Cdrop["Dropout 0.10"]
+  Cdrop --> D["Dense 1 - Output"]
 ```
 
 ---
