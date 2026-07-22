@@ -72,16 +72,16 @@ def opciones():
 @app.post("/predecir")
 def predecir(inm: RequestInmueble):
     try:
-        # 1. Normalizar inputs
+        #  Normalizar inputs
         t_key = normalizar_str(f"tipo_{inm.tipo}")
         b_key = normalizar_str(f"barrio_{inm.barrio}")
         u_key = normalizar_str(f"upz_{inm.upz}")
         
-        # 2. Validar existencias en el modelo
+        #  Validar existencias en el modelo
         if t_key not in mapa_normalizado or b_key not in mapa_normalizado or u_key not in mapa_normalizado:
             raise HTTPException(status_code=400, detail="Categoría no encontrada. Revisa Barrio/UPZ.")
 
-        # 3. Construcción del DataFrame (One-Hot encondding)
+        #  Construcción del DataFrame (One-Hot encondding)
         df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
         df["Área"] = float(inm.area)
         df["Habitaciones"] = float(inm.habitaciones)
@@ -90,11 +90,11 @@ def predecir(inm: RequestInmueble):
         df[mapa_normalizado[b_key]] = 1.0
         df[mapa_normalizado[u_key]] = 1.0
         
-        # 4. Predicción
+        #  Predicción
         scaled = (df.values.astype('float32') - meta_prod["X_mean"].numpy()) / meta_prod["X_std"].numpy()
         mean, std, _ = predecir_ensamble(redes_activas, scaled, meta_prod["y_mean"].numpy(), meta_prod["y_std"].numpy())
 
-        # 5. Corrección de error de dimensionalidad (Aplanado a escalar)
+        # Corrección de error de dimensionalidad (Aplanado a escalar)
         # Esto extrae el número del array de numpy asegurando que sea un float puro
         valor_estimado = float(np.array(mean).ravel()[0])
         valor_incertidumbre = float(np.array(std).ravel()[0])
