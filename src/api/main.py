@@ -81,7 +81,7 @@ def predecir(inm: RequestInmueble):
         if t_key not in mapa_normalizado or b_key not in mapa_normalizado or u_key not in mapa_normalizado:
             raise HTTPException(status_code=400, detail="Categoría no encontrada. Revisa Barrio/UPZ.")
 
-        # 3. Construcción del DataFrame (One-Hot)
+        # 3. Construcción del DataFrame (One-Hot encondding)
         df = pd.DataFrame(0.0, index=[0], columns=columnas_modelo)
         df["Área"] = float(inm.area)
         df["Habitaciones"] = float(inm.habitaciones)
